@@ -39,7 +39,6 @@ class CustomLinear(nn.Module):
         # phi_theta implementation
         # cos_m_theta = self.mlambda[self.m](cos_theta)
         theta = torch.acos(cos_theta) # size=(B, Classnum)
-        # pi = torch.Tensor([math.pi]).cuda()
         k = (theta * self.m / math.pi).floor() # size=(B,Classnum)
         phi_theta = (-1 * torch.ones(k.shape).cuda()).pow(k) * torch.cos(self.m * theta) - 2 * k # size=(B,Classnum) 
         
@@ -66,10 +65,11 @@ class CustomLoss(nn.Module):
         target = target.view(-1,1) #size=(B,1)
         
         # IMPLEMENT loss
-        target_out = torch.exp(phi_theta.gather(1, target)) # size=B
-        
-        total_out = torch.sum(torch.exp(phi_theta), 1) # size=B 
-        loss = torch.mean(-torch.log(target_out / total_out))
+        # target_out = torch.exp(phi_theta.gather(1, target)) # size=B  
+        target_out = torch.exp((self.lamb * cos_theta.gather(1, target) + phi_theta.gather(1, target)) / (1 + self.lamb)) #size=B
+        total_out = torch.sum(torch.exp(cos_theta), 1) - torch.exp(cos_theta.gather(1, target)) # size=B 
+        loss = torch.mean(-torch.log(target_out / (target_out + total_out)))
+        self.lamb = max(self.LambdaMin, self.LambdaMax / (1 + self.it * 0.1))
 
         _, predictedLabel = torch.max(cos_theta.data, 1)
         predictedLabel = predictedLabel.view(-1, 1)
