@@ -1,3 +1,4 @@
+import math
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -35,8 +36,13 @@ class CustomLinear(nn.Module):
         cos_theta = cos_theta / torch.clamp(xlen.view(-1,1) * wlen.view(1,-1), min=1e-8)
         cos_theta = cos_theta.clamp(-1,1)
 
-        # IMPLEMENT phi_theta
-
+        # phi_theta implementation
+        # cos_m_theta = self.mlambda[self.m](cos_theta)
+        theta = torch.acos(cos_theta) # size=(B, Classnum)
+        # pi = torch.Tensor([math.pi]).cuda()
+        k = (theta * self.m / math.pi).floor() # size=(B,Classnum)
+        phi_theta = (-1 * torch.ones(k.shape).cuda()).pow(k) * torch.cos(self.m * theta) - 2 * k # size=(B,Classnum) 
+        
         cos_theta = cos_theta * xlen.view(-1,1)
         phi_theta = phi_theta * xlen.view(-1,1)
 
@@ -58,8 +64,12 @@ class CustomLoss(nn.Module):
         self.it += 1
         cos_theta,phi_theta = input
         target = target.view(-1,1) #size=(B,1)
-
+        
         # IMPLEMENT loss
+        target_out = torch.exp(phi_theta.gather(1, target)) # size=B
+        
+        total_out = torch.sum(torch.exp(phi_theta), 1) # size=B 
+        loss = torch.mean(-torch.log(target_out / total_out))
 
         _, predictedLabel = torch.max(cos_theta.data, 1)
         predictedLabel = predictedLabel.view(-1, 1)
