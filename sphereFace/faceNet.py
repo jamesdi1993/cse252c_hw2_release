@@ -65,12 +65,20 @@ class CustomLoss(nn.Module):
         target = target.view(-1,1) #size=(B,1)
         
         # IMPLEMENT loss
-        # target_out = torch.exp(phi_theta.gather(1, target)) # size=B  
-        target_out = torch.exp((self.lamb * cos_theta.gather(1, target) + phi_theta.gather(1, target)) / (1 + self.lamb)) #size=B
-        total_out = torch.sum(torch.exp(cos_theta), 1) - torch.exp(cos_theta.gather(1, target)) # size=B 
-        loss = torch.mean(-torch.log(target_out / (target_out + total_out)))
+        # target_out = torch.exp(phi_theta.gather(1, target)) # size=B 
+        output = cos_theta * 1.0        # size=(B, classnum)
+        index = cos_theta.data * 0.0 # set them all to 0
+        index.scatter_(1, target.data.view(-1,1), 1) # setting ones at specific target value
+        index = index.type(torch.bool)
+        # print(index)
+        index = Variable(index)
+        
+        output[index] = (self.lamb * cos_theta[index] + phi_theta[index]) / (1 + self.lamb)
         self.lamb = max(self.LambdaMin, self.LambdaMax / (1 + self.it * 0.1))
-
+        
+        loss_all = - F.log_softmax(output)
+        loss = loss_all.gather(1, target).mean()
+        
         _, predictedLabel = torch.max(cos_theta.data, 1)
         predictedLabel = predictedLabel.view(-1, 1)
         accuracy = (predictedLabel.eq(target.data).cpu().sum().item() ) / float(target.size(0) )
