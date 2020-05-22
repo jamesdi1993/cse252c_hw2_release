@@ -35,7 +35,7 @@ class Body(object):
         self.model.load_state_dict(model_dict)
         self.model.eval()
 
-        self.multi_scale = False
+        self.multi_scale = True
 
     def __call__(self, oriImg):
         if self.multi_scale == True:

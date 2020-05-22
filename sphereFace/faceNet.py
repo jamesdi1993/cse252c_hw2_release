@@ -107,7 +107,7 @@ class faceNet(nn.Module):
         self.bn2_1   = nn.BatchNorm2d(128)
         self.relu2_1 = nn.PReLU(128)
         self.conv2_2 = nn.Conv2d(128,128,3,1,1)
-        self.bn2_2   = nn.BatchNorm2d(64)
+        self.bn2_2   = nn.BatchNorm2d(128)
         self.relu2_2 = nn.PReLU(128)
         self.conv2_3 = nn.Conv2d(128,128,3,1,1)
         self.bn2_3   = nn.BatchNorm2d(128)
@@ -162,7 +162,7 @@ class faceNet(nn.Module):
         self.relu4_3 = nn.PReLU(512)
 
         self.fc5 = nn.Linear(512*7*6,512)
-        self.bn5 = nn.BatchNorm2d(512)
+        self.bn5 = nn.BatchNorm1d(512)
         self.fc6 = CustomLinear(in_features = 512,
                 out_features = self.classnum, m=m)
 
